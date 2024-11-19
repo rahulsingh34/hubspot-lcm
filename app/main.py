@@ -6,6 +6,11 @@ from langchain_anthropic import ChatAnthropic
 from langchain.chains import RetrievalQA, LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_experimental.utilities import PythonREPL
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# FastAPI initialization
+app = FastAPI()
 
 # Load environment variables
 dotenv.load_dotenv()
@@ -101,15 +106,33 @@ explanation_chain = LLMChain(
     prompt=explanation_prompt
 )
 
-# ----- RUN QUERY THE MODEL -----
+# Request model
+class QueryRequest(BaseModel):
+    question: str
 
-# Query the RAG Chain
-query = "what company in my CRM has the domain hubspot.com? my access token is pat-na1-59c263ed-698c-4077-b2bc-d1e001750420"
-response = rag_chain.invoke(query)
+# API Endpoints
+@app.post("/query")
+async def query_model(request: QueryRequest):
+    try:
+        # Query RAG chain
+        query = request.question
+        rag_response = rag_chain.invoke(query)
 
-# Run the explanation chain
-explanation = explanation_chain.run({
-    "response": PythonREPL().run(response['result']),
-    "query": query
-})
-print(explanation)
+        # Run explanation chain
+        explanation = explanation_chain.invoke({
+            "response": PythonREPL().run(rag_response['result']),
+            "query": query
+        })
+
+        return {
+            "success": True, 
+            "query": query,
+            "response": rag_response['result'],
+            "explanation": explanation,
+        }
+
+    except Exception as e:
+        return {
+            "success": False, 
+            "error": str(e)
+        }

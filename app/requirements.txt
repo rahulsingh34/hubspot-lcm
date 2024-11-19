@@ -1,0 +1,12 @@
+fastapi==0.115.5
+hubspot-api-client==10.0.0
+langchain==0.3.7
+langchain-anthropic==0.2.4
+langchain-experimental==0.3.3
+langchain-pinecone==0.2.0
+pinecone-client==5.0.1
+pydantic==2.9.2
+python-dotenv==1.0.1
+torch==2.5.0
+transformers==4.45.2
+uvicorn==0.32.0
