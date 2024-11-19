@@ -109,14 +109,18 @@ explanation_chain = LLMChain(
 # Request model
 class QueryRequest(BaseModel):
     question: str
+    access_token: str
 
 # API Endpoints
 @app.post("/query")
 async def query_model(request: QueryRequest):
     try:
+        # Get access token
+        access_token = request.access_token
+
         # Query RAG chain
         query = request.question
-        rag_response = rag_chain.invoke(query)
+        rag_response = rag_chain.invoke(query + "| my access token is " + access_token)
 
         # Run explanation chain
         explanation = explanation_chain.invoke({
