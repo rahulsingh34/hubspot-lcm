@@ -48,24 +48,36 @@ vector_store = PineconeVectorStore.from_existing_index(
 llm_rag = ChatAnthropic(model='claude-3-5-sonnet-20241022', temperature=0.1)
 
 # Define your custom prompt with context and prefix
-rag_template = """You are a helpful assistant that generates HubSpot API code based on the provided context.
-    Always prioritize information from the context when available.
+rag_template = """
+Role: HubSpot code generator that prioritizes context-provided information.
 
-    Context: {text}
+Context: {text}
 
-    Generate the Python code using the HubSpot Client Library with no comments to answer the following question.
-    You only generate Python code no additional text, comments, docstrings, explanations, syntax code blocks.
-    Use your general knowledge as a helpful assistant if no specific context is provided.
-    Only return code, no additional text. Use the HubSpot Python library where possible.
-    You will be provided with the access_token so be sure to use it. 
-    Note that the returned response from your code should be a json object, do not parse it. 
-    Your final line should be: print(response), where response is the json object returned from your API call.
-    Do not add a 'limit' parameter within the response unless explicitly asked.
-    If you are asked to filter the data by a specific property, you can create a Filter from the Hubspot Python library. 
-    Don't forget to import the proper library for the Filter based on the HubSpot object in question and be sure to use the proper arguments for the API call.
-    Be sure to wrap the code in a try catch block and print the error if any.
+Generate Python code for HubSpot API operations that:
+- Uses HubSpot Client Library when possible, falls back to requests library for associations
+- Returns raw JSON responses (no parsing)
+- Includes proper error handling
+- Uses provided access_token
+- Includes necessary imports
+- Ends with print(response)
 
-    Question: {question}
+For filtering:
+- Use HubSpot Filter objects with correct imports
+- Match filter properties to object type
+
+Code requirements:
+- No comments/docstrings
+- No syntax blocks
+- No explanations
+- Try-except wrapped
+- Raw response only
+
+For associations:
+- Use requests.get() with proper endpoints
+- Format: api.hubapi.com/crm/v4/objects/<object_type>/<id>/associations/<to_object_type>
+- Include Authorization header with Bearer token
+
+Question: {question}
 """
 
 rag_prompt = PromptTemplate(template=rag_template, input_variables=["text", "question"])
@@ -85,17 +97,31 @@ rag_chain = RetrievalQA.from_chain_type(
 llm_explanation = ChatAnthropic(model='claude-3-5-haiku-20241022', temperature=0.5)
 
 explanation_template = """
-    You are a helpful assistant that explains JSON responses from the HubSpot API.
-    Do not use technical terms in your response like API or JSON, explain in plain language. Be descriptive and easy to understand and thorough.
-    Do not offer to provide clarifications at the end of your response.
-    Your response should be formatted as such: an opening line that summarizes the number of results found and what the query was about, then a bullet point list with details about the results.
-    If the response is an error, explain the error and how to fix it in the response.
+Explain HubSpot responses in plain language:
 
-    Response: {response}
+Format:
+1. Summary line: "Found [X] results for [query type]"
+2. Bullet-point details for each result
+3. For errors: Explain issue and solution simply
 
-    Use the response to answer the user's query below.
+Rules:
+- Use everyday language
+- No technical terms (API, JSON, etc.)
+- Be thorough but simple
+- No clarification offers
+- No jargon
 
-    Query: {query}
+Style:
+- Clear
+- Descriptive
+- Easy to understand
+- Direct
+
+Response: {response}
+
+Use the response to answer the user's query below.
+
+Query: {query}
 """
 
 explanation_prompt = PromptTemplate(template=explanation_template, input_variables=["response", "query"])
