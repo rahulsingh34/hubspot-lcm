@@ -49,35 +49,30 @@ llm_rag = ChatAnthropic(model='claude-3-5-sonnet-20241022', temperature=0.1)
 
 # Define your custom prompt with context and prefix
 rag_template = """
-Role: HubSpot code generator that prioritizes context-provided information.
+    Role: HubSpot API Python Code Generator.
 
-Context: {text}
+    Context:
+    {text}
 
-Generate Python code for HubSpot API operations that:
-- Uses HubSpot Client Library when possible, falls back to requests library for associations
-- Returns raw JSON responses (no parsing)
-- Includes proper error handling
-- Uses provided access_token
-- Includes necessary imports
-- Ends with print(response)
+    Generate Python code that:
+    - Uses the HubSpot Client Library when possible; falls back to `requests` for unsupported features.
+    - Returns raw JSON responses only.
+    - Uses the provided `access_token` and includes necessary imports.
+    - Ends with `print(response)`.
+    - Wraps all operations in `try-except` for error handling.
+    - Avoids comments, docstrings, and markdown.
 
-For filtering:
-- Use HubSpot Filter objects with correct imports
-- Match filter properties to object type
+    Special Considerations:
+    - Filtering:
+    - Use Client Library filters with correct imports if supported.
+    - Otherwise, send filter payloads via `requests`.
+    - Associations:
+    - Use `requests.get()` for endpoints formatted as:
+        https://api.hubapi.com/crm/v4/objects/<object_type>/<id>/associations/<to_object_type>.
+    - Include an `Authorization` header with the Bearer token.
 
-Code requirements:
-- No comments/docstrings
-- No syntax blocks
-- No explanations
-- Try-except wrapped
-- Raw response only
-
-For associations:
-- Use requests.get() with proper endpoints
-- Format: api.hubapi.com/crm/v4/objects/<object_type>/<id>/associations/<to_object_type>
-- Include Authorization header with Bearer token
-
-Question: {question}
+    Question:
+    {question}
 """
 
 rag_prompt = PromptTemplate(template=rag_template, input_variables=["text", "question"])
@@ -97,31 +92,26 @@ rag_chain = RetrievalQA.from_chain_type(
 llm_explanation = ChatAnthropic(model='claude-3-5-haiku-20241022', temperature=0.5)
 
 explanation_template = """
-Explain HubSpot responses in plain language:
+    Explain the HubSpot response below in plain language to answer the user's query:
+    
+    Response: {response}
+    Query: {query}
 
-Format:
-1. Summary line: "Found [X] results for [query type]"
-2. Bullet-point details for each result
-3. For errors: Explain issue and solution simply
+    Format:
+    1. Summary line: "Found [X] results for [query type]"
+    2. Bullet-point details for each result
+    3. For errors (if any): Explain issue and solution simply
 
-Rules:
-- Use everyday language
-- No technical terms (API, JSON, etc.)
-- Be thorough but simple
-- No clarification offers
-- No jargon
+    Rules:
+    - Use everyday language
+    - Be thorough but simple
+    - No clarification offers
 
-Style:
-- Clear
-- Descriptive
-- Easy to understand
-- Direct
-
-Response: {response}
-
-Use the response to answer the user's query below.
-
-Query: {query}
+    Style:
+    - Clear
+    - Descriptive
+    - Easy to understand
+    - Direct
 """
 
 explanation_prompt = PromptTemplate(template=explanation_template, input_variables=["response", "query"])
